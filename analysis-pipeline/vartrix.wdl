@@ -14,14 +14,6 @@ workflow 10x.genomicsVarTrix {
 
   String output.path=sample.id
 
-  # Runtime
-  String docker
-
-call GetBwaVersion {
-    input:
-      docker = docker
-  }
-
 
 call VarTrix {
     input: 
@@ -38,12 +30,15 @@ call VarTrix {
 
 task VarTrix {
 
-  File RefFasta
-  File RefIndex
-  File RefDict
-  String sample_name
+  File cell.barcodes
   File bamFile
   File bamIndex
+  File RefFasta
+  File RefIndex
+  File vcfFile
+  File vcfFilei
+  String sample_name
+
 
   command {
     vartrix -v ${vcfFile} 
@@ -51,23 +46,15 @@ task VarTrix {
               -f ${refFasta} 
               -c ${cell.barcodes}
               -o ${sample_name}
+
+    vawk '{print $1,$2}' vcfFile > SNV.loci.txt
+    sed -i 's/\s/:/g' SNV.loci.txt 
   }
 
   output {
     File output = "${sample_name}.txt"
+    File snv.loci = "SNV.loci.txt"
   }
-
-  command { 
-     vawk '{print $1,$2}' vcfFile > SNV.loci.txt
-     sed -i 's/\s/:/g' SNV.loci.txt 
-   }
-
-  ## this needs toe be fixed.
-   output { 
-     File snv.loci = SNV.loci.txt} 
-
-
-
 
 }
 
