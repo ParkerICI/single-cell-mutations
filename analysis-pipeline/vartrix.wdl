@@ -53,7 +53,7 @@ task VarTrix {
 
   output {
     File output = "${sample_name}.txt"
-    File snv.loci = "SNV.loci.txt"
+    File snv.loci = SNV.loci.txt
   }
 
 }
