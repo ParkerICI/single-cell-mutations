@@ -1,4 +1,4 @@
-workflow 10x.genomicsVarTrix {
+workflow genomicsVarTrix {
   ## required files
   File cell.barcodes
   File bamFile

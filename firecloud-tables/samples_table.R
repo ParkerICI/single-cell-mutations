@@ -4,7 +4,7 @@ library(data.table)
 library(tidyverse)
 library(dplyr)
 library(magrittr)
-setwd("~/vartrix-project/firecloud-tables")
+setwd("~/vartrix-project")
 
 ## columns bam, bai, cell barcodes, vcf, sample name, output 
 # for i in *.bam ; do echo $i ; samtools index $i $i".bai" ; done
@@ -14,36 +14,36 @@ setwd("~/vartrix-project/firecloud-tables")
 system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bams >> /merged_bam_gslinks.txt")
 system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bais >> /merged_bai_gslinks.txt")
 system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_cellbarcodes >> /cellbarcodes.txt")
-bam <- fread("data/ansu-scRNA/processing/merged_bam_gslinks.txt", 
+bam <- fread("firecloud-tables/merged_bam_gslinks.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
-bai <- fread("data/ansu-scRNA/processing/merged_bai_gslinks.txt", 
+bai <- fread("firecloud-tables/merged_bai_gslinks.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
-cell_barcodes <- fread("data/ansu-scRNA/processing/cellbarcodes.txt", 
+cell_barcodes <- fread("firecloud-tables/cellbarcodes.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
 
 
 # BCC and SCC refer to basal cell carcinoma and squamos cell carcinoma
-bam <- bam %>% rename(star_bam_file = colnames(bam)[1]) %>% 
-  mutate(subject = gsub("_.*", "", basename(star_bam_file)), 
-         sample = gsub("\\..*" , "", basename(star_bam_file))) %>%
-  select(subject, sample, star_bam_file)
+bam <- bam %>% rename(bam = colnames(bam)[1]) %>% 
+  mutate(subject = gsub("_.*", "", basename(bam)), 
+         sample = gsub("\\..*" , "", basename(bam))) %>%
+  select(subject, sample, bam)
 
-bai <- bai %>% rename(star_bai_file = colnames(bai)[1]) %>% 
-  mutate(subject = gsub("_.*", "", basename(star_bai_file)), 
-         sample = gsub("\\..*" , "", basename(star_bai_file))) %>%
-  select( sample, star_bai_file)
+bai <- bai %>% rename(bamIndex = colnames(bai)[1]) %>% 
+  mutate(subject = gsub("_.*", "", basename(bamIndex)), 
+         sample = gsub("\\..*" , "", basename(bamIndex))) %>%
+  select( sample, bamIndex)
 
-cell_barcodes <- cell_barcodes %>% rename(cell.barcode = colnames(cell_barcodes)[1]) %>% 
-  mutate(subject = gsub("_.*", "", basename(cell.barcode)), 
-         sample = gsub("\\..*" , "", basename(cell.barcode)),
+cell_barcodes <- cell_barcodes %>% rename(cellBarcode = colnames(cell_barcodes)[1]) %>% 
+  mutate(subject = gsub("_.*", "", basename(cellBarcode)), 
+         sample = gsub("\\..*" , "", basename(cellBarcode)),
          sample = gsub("_RNA_barcodes","",sample)) %>%
-  select( sample, cell.barcode)
+  select( sample, cellBarcode)
 
 subjects <- unique(normal.bam$subject) ## filter based on existing contorl samples
 
@@ -53,29 +53,29 @@ subjects <- unique(normal.bam$subject) ## filter based on existing contorl sampl
 case_samples_file <- left_join(bam, bai, by = "sample") %>%
   left_join(., cell_barcodes, by = "sample") %>%
   add_column(vcf = "",
-             vcf.i = "",
+             vcfIndex = "",
              fasta = "",
-             fasta.i = "",
+             fastaIndex = "",
              output = "",
-             snv.loci = "")
+             snv_loci = "")
 
 samples_file <- case_samples_file %>%
-  drop_na(star_bam_file, star_bai_file, cell.barcode) %>% filter(subject %in% subjects) %>%
+  drop_na(bam, bamIndex, cellBarcode) %>% filter(subject %in% subjects) %>%
   select(`entity:sample_id` = sample,
          participant = subject,
-         star_bam_file,
-         star_bai_file,
-         cell.barcode,
+         bam,
+         bamIndex,
+         cellBarcode,
          vcf,
-         vcf.i,
-         # fasta,
-         # fasta.i,
+         vcfIndex,
+         fasta,
+         fastaIndex,
          output,
-         snv.loci)
+         snv_loci)
 
 
 write.table(samples_file,
-            "data/ansu-scRNA/processing/samples.txt",
+            "firecloud-tables/samples.txt",
             row.names = FALSE,
             col.names = TRUE,
             quote = FALSE,
@@ -88,7 +88,7 @@ participants_file <- select(samples_file, `entity:participant_id` = participant)
 participants_file <- unique(participants_file) %>% filter(`entity:participant_id` %in%  subjects)
 
 write.table(participants_file,
-            "data/ansu-scRNA/processing/participants.txt",
+            "firecloud-tables/participants.txt",
             row.names = FALSE,
             col.names = TRUE,
             quote = FALSE,
