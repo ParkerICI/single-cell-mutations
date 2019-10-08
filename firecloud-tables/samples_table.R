@@ -4,7 +4,7 @@ library(data.table)
 library(tidyverse)
 library(dplyr)
 library(magrittr)
-setwd("~/vartrix-project/data")
+setwd("~/vartrix-project/firecloud-tables")
 
 ## columns bam, bai, cell barcodes, vcf, sample name, output 
 # for i in *.bam ; do echo $i ; samtools index $i $i".bai" ; done
