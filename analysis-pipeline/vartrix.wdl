@@ -1,6 +1,6 @@
 workflow genomicsVarTrix {
   ## required files
-  File cell.barcodes
+  File cell_barcodes
   File bamFile
   File baiFile
 
@@ -12,48 +12,49 @@ workflow genomicsVarTrix {
   File refFastai
 
 
-  String output.path=sample.id
+  String sample_id
 
 
 call VarTrix {
     input: 
-      cell.barcodes=cell.barcodes,
+      cell_barcodes=cell_barcodes,
       bamFile=bamFile,
       baiFile=baiFile,
       RefFasta=refFasta, 
       RefIndex=refFastai,
       vcfFile=vcfFile,
-      vcfFilei=vcfFilei,
-      sample_name=output.path
+      vcfiFile=vcfiFile,
+      sample_name=sample_id
   }
 }
 
 task VarTrix {
 
-  File cell.barcodes
+  File cell_barcodes
   File bamFile
-  File bamIndex
+  File baiFile
   File RefFasta
   File RefIndex
   File vcfFile
-  File vcfFilei
+  File vcfiFile
   String sample_name
 
 
-  command {
+  command <<<
     vartrix -v ${vcfFile} 
               -b ${bamFile} 
-              -f ${refFasta} 
-              -c ${cell.barcodes}
+              -f ${RefFasta} 
+              -c ${cell_barcodes}
               -o ${sample_name}
 
     vawk '{print $1,$2}' vcfFile > SNV.loci.txt
     sed -i 's/\s/:/g' SNV.loci.txt 
-  }
+
+  >>>
 
   output {
-    File output = "${sample_name}.txt"
-    File snv.loci = SNV.loci.txt
+    File output_file = "${sample_name}"
+    File snv_loci = "SNV.loci.txt"
   }
 
 }
