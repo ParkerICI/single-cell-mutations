@@ -1,7 +1,0 @@
-{
-  "repositoryName":"vartrix",
-  "wdl":"methods/vartrix/vartrix.wdl",
-  "tracked_in_firecloud":true,
-  "synopsis":"A pipeline to test out the vartrix build process",
-  "namespace":"pici-master"
-}
