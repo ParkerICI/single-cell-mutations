@@ -11,39 +11,59 @@ setwd("~/vartrix-project")
 
 
 ## read gslinks in bucket folders and generate into files
-system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bams >> /merged_bam_gslinks.txt")
-system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bais >> /merged_bai_gslinks.txt")
-system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_cellbarcodes >> /cellbarcodes.txt")
+system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bams >> firecloud-tables/merged_bam_gslinks.txt")
+system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_bais >> firecloud-tables/merged_bai_gslinks.txt")
+system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged_cellbarcodes >> firecloud-tables/cellbarcodes.txt")
+system("gsutil ls gs://stanford-sc-rnaseq-bcc/merged-vcfs >> firecloud-tables/vcf.txt")
+
+## read-in files containing gs links
 bam <- fread("firecloud-tables/merged_bam_gslinks.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
+dim(bam)
 bai <- fread("firecloud-tables/merged_bai_gslinks.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
+dim(bai)
 cell_barcodes <- fread("firecloud-tables/cellbarcodes.txt", 
              stringsAsFactors = FALSE,
              check.names = FALSE,
              sep = "\t")
-
-
+dim(cell_barcodes)
+vcfFiles <- fread("firecloud-tables/vcf.txt", 
+                       stringsAsFactors = FALSE,
+                       check.names = FALSE,
+                       sep = "\t")
+dim(vcfFiles)
+### prepare files
 # BCC and SCC refer to basal cell carcinoma and squamos cell carcinoma
-bam <- bam %>% rename(bam = colnames(bam)[1]) %>% 
+bam <- bam %>% rename(bam = colnames(.)[1]) %>% 
   mutate(subject = gsub("_.*", "", basename(bam)), 
          sample = gsub("\\..*" , "", basename(bam))) %>%
   select(subject, sample, bam)
 
-bai <- bai %>% rename(bamIndex = colnames(bai)[1]) %>% 
+bai <- bai %>% rename(bamIndex = colnames(.)[1]) %>% 
   mutate(subject = gsub("_.*", "", basename(bamIndex)), 
          sample = gsub("\\..*" , "", basename(bamIndex))) %>%
   select( sample, bamIndex)
 
-cell_barcodes <- cell_barcodes %>% rename(cellBarcode = colnames(cell_barcodes)[1]) %>% 
+cell_barcodes <- cell_barcodes %>% rename(cellBarcode = colnames(.)[1]) %>% 
   mutate(subject = gsub("_.*", "", basename(cellBarcode)), 
          sample = gsub("\\..*" , "", basename(cellBarcode)),
          sample = gsub("_RNA_barcodes","",sample)) %>%
   select( sample, cellBarcode)
+
+vcf <- vcfFiles %>% rename(vcf = colnames(.)[1]) %>% 
+  filter(!grepl(".gz.tbi", vcf)) %>%
+  mutate(subject = paste("su00", gsub("_.*", "", basename(vcf)), sep = "")) %>%
+  select(subject, vcf)
+
+vcfIndex <- vcfFiles %>% rename(vcfIndex = colnames(.)[1]) %>%
+  filter(grepl(".gz.tbi", vcfIndex)) %>%
+  mutate(subject = paste("su00", gsub("_.*", "", basename(vcfIndex)), sep = "")) %>%
+  select(subject, vcfIndex)
 
 subjects <- unique(normal.bam$subject) ## filter based on existing contorl samples
 
@@ -52,11 +72,9 @@ subjects <- unique(normal.bam$subject) ## filter based on existing contorl sampl
 ##################
 case_samples_file <- left_join(bam, bai, by = "sample") %>%
   left_join(., cell_barcodes, by = "sample") %>%
-  add_column(vcf = "",
-             vcfIndex = "",
-             fasta = "",
-             fastaIndex = "",
-             output = "",
+  left_join(., vcf, by = "subject") %>%
+  left_join(., vcfIndex, by = "subject") %>%
+  add_column(output = "",
              snv_loci = "")
 
 samples_file <- case_samples_file %>%
@@ -68,8 +86,6 @@ samples_file <- case_samples_file %>%
          cellBarcode,
          vcf,
          vcfIndex,
-         fasta,
-         fastaIndex,
          output,
          snv_loci)
 

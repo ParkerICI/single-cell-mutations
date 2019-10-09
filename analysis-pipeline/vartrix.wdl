@@ -14,6 +14,10 @@ workflow genomicsVarTrix {
 
   String sample_id
 
+  ## runtime
+  String docker
+  Int preemptible_tries
+  Int disk_size
 
 call VarTrix {
     input: 
@@ -24,7 +28,10 @@ call VarTrix {
       RefIndex=refFastai,
       vcfFile=vcfFile,
       vcfiFile=vcfiFile,
-      sample_name=sample_id
+      sample_name=sample_id,
+      docker=docker,
+      preemptible_tries=preemptible_tries,
+      disk_size=disk_size
   }
 }
 
@@ -37,14 +44,20 @@ task VarTrix {
   File RefIndex
   File vcfFile
   File vcfiFile
-  String sample_name
 
+  String sample_name
+  String docker
+
+  Int preemptible_tries
+  Int disk_size
 
   command <<<
     vartrix -v ${vcfFile} 
               -b ${bamFile} 
               -f ${RefFasta} 
               -c ${cell_barcodes}
+              --umi
+              -s alt_frac
               -o ${sample_name}
 
     vawk '{print $1,$2}' vcfFile > SNV.loci.txt
@@ -56,7 +69,13 @@ task VarTrix {
     File output_file = "${sample_name}"
     File snv_loci = "SNV.loci.txt"
   }
-
+    runtime {
+        preemptible: preemptible_tries
+        memory: "20 GB"
+        cpu: "2"
+        disks: "local-disk " + disk_size + " HDD"
+        docker: docker
+      }
 }
 
 
